@@ -21,34 +21,10 @@ categories.forEach((item,index)=>{
  nav.addEventListener('click',()=>openWindow(item)); $('navigation').append(nav);
  const card = document.createElement('button'); card.className = 'card';
  card.style.setProperty('--accent',item.accent); card.style.setProperty('--tint',item.tint);
- card.innerHTML = `<span class="symbol" aria-hidden="true">${item.symbol}</span><span class="number">0${index+1}</span><h3>${item.title}</h3><p>${item.description}</p><span class="open-label">정보 창 열기 +</span>`;
+ card.innerHTML = `<span class="symbol" aria-hidden="true">${item.symbol}</span><span class="number">0${index+1}</span><h3>${item.title}</h3><p>${item.description}</p><span class="open-label">내용 보기 ↓</span>`;
  card.addEventListener('click',()=>openWindow(item)); $('cards').append(card);
 });
-function front(state){state.element.hidden=false;state.element.style.zIndex=++zIndex;document.querySelectorAll('.taskbar button').forEach(b=>b.classList.remove('current'));state.task.classList.add('current');}
-function closeWindow(id){const state=openWindows.get(id);if(!state)return;state.element.remove();state.task.remove();openWindows.delete(id);state.opener?.focus();}
-function openWindow(item){
- if(item.id==='stocks'){showPanel('stocks-panel');return;} if(item.id==='bus'){showPanel('bus-panel');return;} if(item.id==='welfare'){document.getElementById('welfare-panel').scrollIntoView({behavior:'smooth',block:'start'});return;}
- if(openWindows.has(item.id)){front(openWindows.get(item.id));return;}
- const element=document.createElement('section');element.className='window';element.setAttribute('role','dialog');element.setAttribute('aria-labelledby',`title-${item.id}`);element.tabIndex=-1;
- const offset=(openWindows.size%5)*24;element.style.left=`${Math.min(innerWidth-650,Math.max(12,innerWidth*.25))+offset}px`;element.style.top=`${110+offset}px`;
- element.innerHTML=`<div class="window-title"><span aria-hidden="true" style="color:${item.accent}">${item.symbol}</span><strong id="title-${item.id}">${item.title}</strong><button data-action="min" aria-label="창 최소화">−</button><button data-action="max" aria-label="창 최대화 또는 복원">□</button><button data-action="close" class="close" aria-label="창 닫기">×</button></div><div class="window-body"><span class="eyebrow">GEOJE LIFE DESK</span><h2>${item.title}</h2><p>${item.intro}</p>${item.links.map(([title,desc,url])=>`<a class="resource" href="${url}" target="_blank" rel="noopener noreferrer"><strong>${title}<span aria-hidden="true">↗</span></strong><small>${desc} · 새 탭에서 열기</small></a>`).join('')}<p class="source-note">${item.note||'최신 게시물은 원문에서 확인하세요. 카페와 인스타그램은 로그인이나 가입이 필요할 수 있습니다.'}</p></div>`;
- const task=document.createElement('button');task.textContent=`${item.symbol} ${item.title}`;
- const state={element,task,opener:document.activeElement};openWindows.set(item.id,state);$('windows').append(element);$('taskbar').append(task);
- task.addEventListener('click',()=>{front(state);element.focus();});
- element.addEventListener('pointerdown',()=>front(state));
- element.querySelector('[data-action="close"]').addEventListener('click',()=>closeWindow(item.id));
- element.querySelector('[data-action="min"]').addEventListener('click',()=>{element.hidden=true;task.classList.remove('current');task.focus();});
- element.querySelector('[data-action="max"]').addEventListener('click',()=>element.classList.toggle('maximized'));
- element.addEventListener('keydown',event=>{if(event.key==='Escape')closeWindow(item.id);});
- const titlebar=element.querySelector('.window-title');let drag;
- titlebar.addEventListener('pointerdown',event=>{if(event.target.closest('button')||element.classList.contains('maximized')||innerWidth<=720)return;drag={x:event.clientX,y:event.clientY,left:element.offsetLeft,top:element.offsetTop};titlebar.setPointerCapture(event.pointerId);});
- titlebar.addEventListener('pointermove',event=>{if(!drag)return;element.style.left=`${Math.max(0,Math.min(innerWidth-element.offsetWidth,drag.left+event.clientX-drag.x))}px`;element.style.top=`${Math.max(0,Math.min(innerHeight-120,drag.top+event.clientY-drag.y))}px`;});
- titlebar.addEventListener('pointerup',()=>drag=null);titlebar.addEventListener('pointercancel',()=>drag=null);
- front(state);element.focus();
-}
-$('reset').addEventListener('click',()=>{[...openWindows.keys()].forEach(closeWindow);$('home').focus();});
-$('home').addEventListener('click',()=>{[...openWindows.keys()].forEach(closeWindow);showPanel('weather-panel',false);showPanel('stocks-panel',false);window.scrollTo({top:0,behavior:'smooth'});});
-window.addEventListener('resize',()=>openWindows.forEach(({element})=>{if(innerWidth>720&&!element.classList.contains('maximized')){element.style.left=`${Math.max(12,Math.min(element.offsetLeft,innerWidth-element.offsetWidth-12))}px`;element.style.top=`${Math.max(12,Math.min(element.offsetTop,innerHeight-120))}px`;}}));
+function openWindow(item){const id={stocks:'stocks-panel',bus:'bus-panel',welfare:'welfare-panel'}[item.id]||'info-'+item.id;document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});}
 function updateDate(){$('date').textContent=new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',month:'long',day:'numeric',weekday:'short'}).format(new Date());}
 updateDate();setInterval(updateDate,60000);
 const cities=[{name:'서울',lat:37.5665,lon:126.978},{name:'거제',lat:34.8806,lon:128.6211},{name:'부산',lat:35.1796,lon:129.0756},{name:'충주',lat:36.991,lon:127.9259}];
@@ -69,19 +45,9 @@ async function loadWeather(){
 $('refresh').addEventListener('click',loadWeather);loadWeather();
 
 // 날씨와 주식 창은 처음부터 펼쳐져 있습니다. 최소화 후 작업 표시줄에서 복원합니다.
-const panelTasks=new Map();
-function showPanel(id,scroll=true){const panel=$(id);panel.hidden=false;panel.classList.remove('panel-minimized');panelTasks.get(id)?.remove();panelTasks.delete(id);if(scroll)panel.scrollIntoView({behavior:'smooth',block:'center'});}
-document.querySelectorAll('[data-show]').forEach(button=>button.addEventListener('click',()=>showPanel(button.dataset.show)));
-document.querySelectorAll('[data-panel]').forEach(button=>button.addEventListener('click',()=>{
- const id=button.dataset.panel,panel=$(id);
- if(button.dataset.control==='max'){panel.classList.toggle('panel-maximized');return;}
- panel.hidden=true;panel.classList.remove('panel-maximized');
- if(button.dataset.control==='min'&&!panelTasks.has(id)){const task=document.createElement('button');task.textContent=({'weather-panel':'☀ 날씨 창','stocks-panel':'↗ 주식 창','bus-panel':'▣ 2000번 버스'})[id];task.addEventListener('click',()=>showPanel(id));$('taskbar').append(task);panelTasks.set(id,task);task.focus();}
- else if(button.dataset.control==='close'){panelTasks.get(id)?.remove();panelTasks.delete(id);document.querySelector(`[data-show="${id}"]`).focus();}
-}));
-document.querySelectorAll('.desk-panel').forEach(panel=>panel.addEventListener('keydown',event=>{if(event.key==='Escape')panel.classList.remove('panel-maximized');}));
-$('reset').addEventListener('click',()=>{['weather-panel','stocks-panel','bus-panel'].forEach(id=>{$(id).hidden=true;$(id).classList.remove('panel-maximized');panelTasks.get(id)?.remove();panelTasks.delete(id);});});
-const weatherNav=document.createElement('button');weatherNav.innerHTML='<span class="nav-symbol">☀</span>네 도시 날씨';weatherNav.addEventListener('click',()=>showPanel('weather-panel'));$('navigation').prepend(weatherNav);
+function showPanel(id,scroll=true){if(scroll)$(id).scrollIntoView({behavior:'smooth',block:'start'});}
+document.querySelectorAll('[data-show]').forEach(b=>b.addEventListener('click',()=>showPanel(b.dataset.show)));
+$('reset').textContent='맨 위로 ↑';$('reset').addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
 const widgetScript=document.createElement('script');widgetScript.src='https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js';widgetScript.async=true;
 widgetScript.textContent=JSON.stringify({colorTheme:'light',dateRange:'1D',locale:'kr',isTransparent:true,width:'100%',height:380,showChart:true,showSymbolLogo:true,showFloatingTooltip:true,plotLineColorGrowing:'rgba(0,119,255,1)',plotLineColorFalling:'rgba(0,119,255,1)',gridLineColor:'rgba(0,45,110,0.06)',scaleFontColor:'#556b87',belowLineFillColorGrowing:'rgba(0,119,255,0.12)',belowLineFillColorFalling:'rgba(0,119,255,0.12)',belowLineFillColorGrowingBottom:'rgba(0,119,255,0)',belowLineFillColorFallingBottom:'rgba(0,119,255,0)',tabs:[{title:'미국 대표 종목',symbols:[{s:'NASDAQ:NVDA',d:'엔비디아'},{s:'NASDAQ:AAPL',d:'애플'},{s:'NASDAQ:MSFT',d:'마이크로소프트'}]}]});
 widgetScript.onerror=()=>{$('market-status').textContent='차트 연결을 확인해주세요. 네이버 증권에서 최신 시세를 볼 수 있습니다.';};
@@ -116,3 +82,5 @@ const kospiScript=document.createElement('script');kospiScript.src='https://s3.t
 $('route-filter').addEventListener('input',event=>{const q=event.target.value.trim().toLowerCase();Array.from($('city-route').options).forEach(o=>{o.hidden=!!o.value&&!o.textContent.toLowerCase().includes(q);});$('city-route').value='';});
 
 document.querySelectorAll('.official-bus-search').forEach(form=>form.addEventListener('submit',event=>{event.preventDefault();const route=form.querySelector('select');const name=route?route.selectedOptions[0].textContent:form.querySelector('[name="searchBusStopName"]').value;$('bus-search-status').textContent='공식 사이트에서 '+name+'을(를) 검색하세요.';window.open('https://bis.geoje.go.kr/main/main.do?action=webMain','_blank','noopener,noreferrer');}));
+
+const details=document.createElement('div');details.className='scroll-details';categories.filter(c=>!['welfare','stocks','bus'].includes(c.id)).forEach(item=>{const section=document.createElement('section');section.className='scroll-info';section.id='info-'+item.id;section.innerHTML='<span class="eyebrow">GEOJE LIFE</span><h2>'+item.title+'</h2><p>'+item.intro+'</p>'+item.links.map(([n,d,u])=>'<a class="resource" href="'+u+'" target="_blank" rel="noopener noreferrer"><strong>'+n+' ↗</strong><small>'+d+'</small></a>').join('');details.append(section);});$('cards').after(details);
