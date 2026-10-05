@@ -111,3 +111,8 @@ welfareNews.forEach(item=>{const article=document.createElement('article');artic
 $('bus-reload').addEventListener('click',()=>{$('bus-map').src='https://bis.geoje.go.kr/main/main.do?action=webMain';});
 
 
+
+const kospiScript=document.createElement('script');kospiScript.src='https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js';kospiScript.async=true;kospiScript.textContent=JSON.stringify({symbol:'INDEX:KSIC',width:'100%',height:260,locale:'kr',dateRange:'1M',colorTheme:'light',isTransparent:true,autosize:false,largeChartUrl:'https://stock.naver.com/domestic/index/KOSPI/price'});$('kospi-widget').append(kospiScript);
+$('route-filter').addEventListener('input',event=>{const q=event.target.value.trim().toLowerCase();Array.from($('city-route').options).forEach(o=>{o.hidden=!!o.value&&!o.textContent.toLowerCase().includes(q);});$('city-route').value='';});
+
+document.querySelectorAll('.official-bus-search').forEach(form=>form.addEventListener('submit',event=>{event.preventDefault();const route=form.querySelector('select');const name=route?route.selectedOptions[0].textContent:form.querySelector('[name="searchBusStopName"]').value;$('bus-search-status').textContent='공식 사이트에서 '+name+'을(를) 검색하세요.';window.open('https://bis.geoje.go.kr/main/main.do?action=webMain','_blank','noopener,noreferrer');}));
